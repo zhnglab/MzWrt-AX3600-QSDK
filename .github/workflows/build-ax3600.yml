@@ -35,6 +35,19 @@ jobs:
       - name: Checkout build project
         uses: actions/checkout@v4
 
+      - name: Move Docker storage to expanded disk
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo systemctl stop docker
+          mkdir -p "$GITHUB_WORKSPACE/.docker-data"
+          printf '{"data-root":"%s"}\n' "$GITHUB_WORKSPACE/.docker-data" | sudo tee /etc/docker/daemon.json
+          sudo systemctl start docker
+          test "$(docker info --format '{{.DockerRootDir}}')" = "$GITHUB_WORKSPACE/.docker-data"
+          echo "Docker root: $(docker info --format '{{.DockerRootDir}}')"
+          df -h / "$GITHUB_WORKSPACE"
+          test "$(df --output=avail -k "$GITHUB_WORKSPACE" | tail -1)" -gt 52428800
+
       - name: Verify project customization
         run: bash scripts/verify-customization.sh
 
@@ -56,7 +69,6 @@ jobs:
             -e DEBIAN_FRONTEND=noninteractive \
             ubuntu:20.04 bash -lc '
               set -e
-              sed -i "s/^# deb .* universe/deb &/" /etc/apt/sources.list || true
               apt-get update
               apt-get install -y --no-install-recommends \
                 build-essential clang flex bison g++ gawk gcc-multilib g++-multilib \
