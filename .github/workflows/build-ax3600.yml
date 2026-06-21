@@ -67,6 +67,8 @@ jobs:
             -v "$GITHUB_WORKSPACE:/build" \
             -w /build \
             -e DEBIAN_FRONTEND=noninteractive \
+            -e HOST_UID="$(id -u)" \
+            -e HOST_GID="$(id -g)" \
             ubuntu:20.04 bash -lc '
               set -e
               apt-get update
@@ -77,14 +79,24 @@ jobs:
                 zstd cpio qemu-utils libelf-dev device-tree-compiler ca-certificates \
                 patch perl tar xz-utils sudo
               ln -sf /usr/bin/python2 /usr/local/bin/python
+              groupadd -g "$HOST_GID" builder
+              useradd -m -u "$HOST_UID" -g "$HOST_GID" -s /bin/bash builder
               python --version
               python3 --version
-              git config --global http.version HTTP/1.1
-              git config --global advice.detachedHead false
-              bash scripts/build.sh
+              su -s /bin/bash builder -c "
+                set -e
+                cd /build
+                git config --global http.version HTTP/1.1
+                git config --global advice.detachedHead false
+                bash scripts/build.sh
+              "
             '
           status=$?
-          sudo chown -R "$(id -u):$(id -g)" "$GITHUB_WORKSPACE"
+          sudo chown -R "$(id -u):$(id -g)" \
+            "$GITHUB_WORKSPACE/output" \
+            "$GITHUB_WORKSPACE/build.log" \
+            "$GITHUB_WORKSPACE/final.config" \
+            "$GITHUB_WORKSPACE/source-commit.txt" 2>/dev/null || true
           exit "$status"
 
       - name: Upload firmware
