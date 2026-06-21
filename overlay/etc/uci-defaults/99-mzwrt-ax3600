@@ -1,0 +1,35 @@
+#!/bin/sh
+
+uci -q set system.@system[0].hostname='MzWRT'
+uci -q set system.@system[0].timezone='CST-8'
+uci -q set system.@system[0].zonename='Asia/Shanghai'
+
+uci -q set network.lan.proto='static'
+uci -q set network.lan.ipaddr='192.168.88.1'
+uci -q set network.lan.netmask='255.255.255.0'
+uci -q set dhcp.lan.ignore='0'
+uci -q set dhcp.lan.force='1'
+
+uci -q set luci.main.lang='zh_cn'
+uci -q set luci.main.mediaurlbase='/luci-static/argon'
+
+for radio in $(uci -q show wireless | sed -n "s/^wireless\.\([^.=]*\)=wifi-device$/\1/p"); do
+    uci -q set "wireless.${radio}.disabled=0"
+done
+
+for iface in $(uci -q show wireless | sed -n "s/^wireless\.\([^.=]*\)=wifi-iface$/\1/p"); do
+    uci -q set "wireless.${iface}.ssid=Mr.Wrt"
+done
+
+uci -q commit system
+uci -q commit network
+uci -q commit dhcp
+uci -q commit luci
+uci -q commit wireless
+
+if [ -f /etc/openwrt_release ]; then
+    sed -i "/^DISTRIB_DESCRIPTION=/d" /etc/openwrt_release
+    echo "DISTRIB_DESCRIPTION='MzWRT QSDK 5.4 By Mr.Zhang'" >> /etc/openwrt_release
+fi
+
+exit 0
