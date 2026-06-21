@@ -21,6 +21,12 @@ mkdir -p files
 cp -a "$PROJECT_DIR/overlay/." files/
 chmod 0755 files/etc/uci-defaults/99-mzwrt-ax3600
 
+KERNEL_CONFIG="target/linux/ipq807x/generic/config-default"
+if ! grep -q '^# CONFIG_MHI_BUS_TEST is not set$' "$KERNEL_CONFIG"; then
+  printf '\n# Keep the legacy AX3600 kernel configuration noninteractive.\n# CONFIG_MHI_BUS_TEST is not set\n' >> "$KERNEL_CONFIG"
+fi
+grep -q '^# CONFIG_MHI_BUS_TEST is not set$' "$KERNEL_CONFIG"
+
 cp "$PROJECT_DIR/configs/ax3600.config" .config
 make defconfig
 
