@@ -35,6 +35,11 @@ jobs:
       - name: Checkout build project
         uses: actions/checkout@v4
 
+      - name: Set up legacy Python 2.7
+        uses: actions/setup-python@v4
+        with:
+          python-version: '2.7'
+
       - name: Install build dependencies
         env:
           DEBIAN_FRONTEND: noninteractive
@@ -46,7 +51,8 @@ jobs:
             rsync unzip zlib1g-dev file wget curl subversion swig time xsltproc \
             zstd cpio qemu-utils libelf-dev device-tree-compiler ca-certificates \
             patch perl tar xz-utils
-          sudo ln -sf /usr/bin/python3 /usr/local/bin/python
+          python --version
+          python3 --version
           git config --global http.version HTTP/1.1
           git config --global advice.detachedHead false
 
