@@ -14,6 +14,12 @@ fi
 cd "$QSDK_DIR"
 git rev-parse HEAD | tee "$PROJECT_DIR/source-commit.txt"
 
+# QSDK's legacy kernel fragments omit newer symbols. Resolve them with
+# olddefconfig during the normal kernel configure stage, after the AArch64
+# cross-compiler has been built and added to PATH.
+patch --forward -p1 < "$PROJECT_DIR/patches/001-kernel-olddefconfig.patch"
+grep -q '\$(KERNEL_MAKE) olddefconfig' include/kernel-defaults.mk
+
 ./scripts/feeds update -a
 ./scripts/feeds install -a
 
@@ -23,19 +29,6 @@ chmod 0755 files/etc/uci-defaults/99-mzwrt-ax3600
 
 cp "$PROJECT_DIR/configs/ax3600.config" .config
 make defconfig
-
-# FanFansfan/qsdk-5.4 carries a legacy kernel fragment that predates several
-# Kconfig symbols in its vendored Linux tree. QSDK's kernel_oldconfig target is
-# interactive, so accept every symbol's declared default and let QSDK write the
-# complete result back to the selected ipq807x configuration fragment.
-set +o pipefail
-yes "" | make kernel_oldconfig V=s
-KERNEL_OLDCONFIG_STATUS=${PIPESTATUS[1]}
-set -o pipefail
-if [ "$KERNEL_OLDCONFIG_STATUS" -ne 0 ]; then
-  echo "kernel_oldconfig failed with status $KERNEL_OLDCONFIG_STATUS" >&2
-  exit "$KERNEL_OLDCONFIG_STATUS"
-fi
 
 if ! grep -q '^CONFIG_TARGET_ipq807x=y' .config; then
   echo "ipq807x target was not selected" >&2
