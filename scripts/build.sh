@@ -20,6 +20,12 @@ git rev-parse HEAD | tee "$PROJECT_DIR/source-commit.txt"
 patch --forward -p1 < "$PROJECT_DIR/patches/001-kernel-olddefconfig.patch"
 grep -q '\$(KERNEL_MAKE) olddefconfig' include/kernel-defaults.mk
 
+# FanFansfan/qsdk-5.4 is missing this source file although its ARM64 kernel
+# Makefile requires it. Restore the exact linker script from Linux v5.4.
+VDSO_DIR="qca/src/linux-5.4/arch/arm64/kernel/vdso"
+install -m 0644 "$PROJECT_DIR/kernel-files/arch/arm64/kernel/vdso/vdso.lds.S" "$VDSO_DIR/vdso.lds.S"
+test -s "$VDSO_DIR/vdso.lds.S"
+
 ./scripts/feeds update -a
 ./scripts/feeds install -a
 
