@@ -23,9 +23,6 @@ jobs:
     timeout-minutes: 360
 
     steps:
-      - name: Checkout build project
-        uses: actions/checkout@v4
-
       - name: Maximize build disk
         uses: easimon/maximize-build-space@v10
         with:
@@ -34,6 +31,9 @@ jobs:
           remove-dotnet: 'true'
           remove-android: 'true'
           remove-haskell: 'true'
+
+      - name: Checkout build project
+        uses: actions/checkout@v4
 
       - name: Install build dependencies
         env:
