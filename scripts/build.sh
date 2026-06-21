@@ -21,14 +21,21 @@ mkdir -p files
 cp -a "$PROJECT_DIR/overlay/." files/
 chmod 0755 files/etc/uci-defaults/99-mzwrt-ax3600
 
-KERNEL_CONFIG="target/linux/ipq807x/generic/config-default"
-if ! grep -q '^# CONFIG_MHI_BUS_TEST is not set$' "$KERNEL_CONFIG"; then
-  printf '\n# Keep the legacy AX3600 kernel configuration noninteractive.\n# CONFIG_MHI_BUS_TEST is not set\n' >> "$KERNEL_CONFIG"
-fi
-grep -q '^# CONFIG_MHI_BUS_TEST is not set$' "$KERNEL_CONFIG"
-
 cp "$PROJECT_DIR/configs/ax3600.config" .config
 make defconfig
+
+# FanFansfan/qsdk-5.4 carries a legacy kernel fragment that predates several
+# Kconfig symbols in its vendored Linux tree. QSDK's kernel_oldconfig target is
+# interactive, so accept every symbol's declared default and let QSDK write the
+# complete result back to the selected ipq807x configuration fragment.
+set +o pipefail
+yes "" | make kernel_oldconfig V=s
+KERNEL_OLDCONFIG_STATUS=${PIPESTATUS[1]}
+set -o pipefail
+if [ "$KERNEL_OLDCONFIG_STATUS" -ne 0 ]; then
+  echo "kernel_oldconfig failed with status $KERNEL_OLDCONFIG_STATUS" >&2
+  exit "$KERNEL_OLDCONFIG_STATUS"
+fi
 
 if ! grep -q '^CONFIG_TARGET_ipq807x=y' .config; then
   echo "ipq807x target was not selected" >&2
